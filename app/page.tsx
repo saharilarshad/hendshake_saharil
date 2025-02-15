@@ -1,101 +1,344 @@
-import Image from "next/image";
+"use client"
+
+import React, { useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { toast, Toaster } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Trash2, Pencil, BookCheck } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  // AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
+const formSchema = z.object({
+  activity: z.string().min(2, {
+    message: "Activity must be at least 2 characters.",
+  }),
+  price: z.number().min(1, {
+    message: "Price must be a number and at least 1 characters.",
+  }),
+  type: z.enum([
+    "education", "recreational", "social", "diy", "charity", "cooking",
+    "relaxation", "music", "busywork"
+  ]),
+  booking_required: z.boolean(),
+  accessibility: z.number(),
+});
+
+
+type TEnum = "education" | "recreational" | "social" | "diy" | "charity" | "cooking" | "relaxation" | "music" | "busywork";
+
+export type TData = {
+  activity: string;
+  price: number;
+  type: TEnum;
+  booking_required: boolean;
+  accessibility: number;
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [data, setData] = useState<TData[]>([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+
+  const [openModalDelete, setOpenModalDelete] = useState<boolean>(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState<number | null>(null);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      activity: "",
+      price: 0,
+      type: "education",
+      booking_required: false,
+      accessibility: 0.0,
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    console.log("values", values)
+
+    if (editIndex !== null) {
+      const updatedData = [...data];
+      updatedData[editIndex] = { ...updatedData[editIndex], ...values };
+      setData(updatedData);
+      setEditIndex(null);
+
+      toast.success("Item updated successfully!");
+    } else {
+      setData((prevData) => [...prevData, { ...values }]);
+    }
+    form.reset();
+  };
+
+  const handleEdit = (index: number) => {
+    setEditIndex(index);
+    const itemToEdit = data[index];
+    form.setValue("activity", itemToEdit.activity);
+    form.setValue("price", itemToEdit.price);
+    form.setValue("type", itemToEdit.type);
+    form.setValue("booking_required", itemToEdit.booking_required);
+    form.setValue("accessibility", itemToEdit.accessibility);
+  };
+
+  const handleDelete = (index: number) => {
+    const updatedData = data.filter((_, i) => i !== index);
+    setData(updatedData);
+  };
+
+  console.log("data", data)
+  console.log("selectedDeleteId", selectedDeleteId)
+
+  return (
+    <>
+      <Toaster position="top-center" richColors closeButton />
+
+
+      <>
+        <div className="mt-20 flex flex-col gap-5 items-center justify-center w-screen">
+          <h2 className="text-2xl font-semibold">Add Book Here!</h2>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-1/3">
+              <FormField
+                control={form.control}
+                name="activity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Activity Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Activity Name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      This is your display activity name.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Price" {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Activity Type</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value || ""}
+                        onValueChange={(value) => field.onChange(value)}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Activity Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Activity Type</SelectLabel>
+                            <SelectItem value="education">Education</SelectItem>
+                            <SelectItem value="recreational">Recreational</SelectItem>
+                            <SelectItem value="social">Social</SelectItem>
+                            <SelectItem value="diy">DIY</SelectItem>
+                            <SelectItem value="charity">Charity</SelectItem>
+                            <SelectItem value="cooking">Cooking</SelectItem>
+                            <SelectItem value="relaxation">Relaxation</SelectItem>
+                            <SelectItem value="music">Music</SelectItem>
+                            <SelectItem value="busywork">Busywork</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="booking_required"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Booking Required</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="checkbox" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="accessibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Accessibility ({field.value} to 1)</FormLabel>
+                    <FormControl>
+
+                      <Slider
+                        defaultValue={[0.0]}
+                        value={[field.value]}
+                        onValueChange={(value) => field.onChange(value[0])}
+                        max={1.0}
+                        step={0.1}
+
+                      // {...field}
+                      />
+
+
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+
+              <Button type="submit" className="btn btn-primary w-full">
+                {editIndex !== null ? "Update Activity" : "Add Activity"}
+              </Button>
+            </form>
+          </Form>
+
+
+          <div className="p-5 w-full flex items-center justify-center">
+            <Table className="">
+              <TableCaption>A List Your Data.</TableCaption>
+              <TableHeader className="w-full text-center">
+                <TableRow className="text-center">
+                  <TableHead className="w-[40px]">No.</TableHead>
+                  <TableHead className="text-center">Activity</TableHead>
+                  <TableHead className="text-center">Price</TableHead>
+                  <TableHead className="text-center">Type Activity</TableHead>
+                  <TableHead className="text-center">Booking</TableHead>
+                  <TableHead className="text-center">Accessibility</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="w-full">
+                {data &&
+                  data.map((item, index) => (
+                    <React.Fragment key={index}>
+                      <TableRow className="w-full">
+                        <TableCell className="font-medium w-[40px]">
+                          {index + 1}
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          {item.name}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {item.price}
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          {item.type}
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          {item.booking_required}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-3">
+
+
+                            <span
+                              onClick={() => {
+                                setOpenModalDelete(true);
+                                setSelectedDeleteId(index);
+                              }}
+                            >
+                              <Trash2 className="cursor-pointer text-red-500" />
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {openModalDelete && (
+          <AlertDialog
+            open={openModalDelete}
+            onOpenChange={setOpenModalDelete}
+          >
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undo. This will proceed to Delete
+                  Book.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                {selectedDeleteId && (
+                  <AlertDialogAction
+                    onClick={() => {
+                      handleDelete(selectedDeleteId);
+                    }}
+                  >
+                    Continue
+                  </AlertDialogAction>
+                )}
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </>
+    </>
+
   );
 }
