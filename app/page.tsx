@@ -261,6 +261,7 @@ export default function Home() {
                   <TableHead className="text-center">Type Activity</TableHead>
                   <TableHead className="text-center">Booking</TableHead>
                   <TableHead className="text-center">Accessibility</TableHead>
+                  <TableHead className="text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="w-full">
@@ -273,7 +274,7 @@ export default function Home() {
                         </TableCell>
 
                         <TableCell className="text-center">
-                          {item.name}
+                          {item.activity}
                         </TableCell>
                         <TableCell className="text-center">
                           {item.price}
@@ -284,8 +285,12 @@ export default function Home() {
                         </TableCell>
 
                         <TableCell className="text-center">
-                          {item.booking_required}
+                          {item.booking_required ? "Yes" : "No"}
                         </TableCell>
+                        <TableCell className="text-center">
+                          {item.accessibility}
+                        </TableCell>
+
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-3">
 
